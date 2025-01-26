@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-import os
-
 import aws_cdk as cdk
 from constructs import Construct
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_s3 as s3
-from aws_cdk import CfnCreationPolicy, CfnResourceSignal, Duration
 
 class MonolitikStack(cdk.Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -46,7 +43,7 @@ class MonolitikStack(cdk.Stack):
         )
         cdk.Tags.of(ec2publicsg).add("Name", "MonolitikSG")
 
-        monolitik_bucket = s3.Bucket(self, "MonolitikBucket-Herley",
+        monolitik_bucket = s3.Bucket(self, "monolitik-sistem",
                                      removal_policy=cdk.RemovalPolicy.DESTROY)
 
         # Create IAM role for EC2 instance
@@ -58,17 +55,15 @@ class MonolitikStack(cdk.Stack):
         role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore"))
         monolitik_bucket.grant_read_write(role)
 
-        # Define user data with cfn-signal
+        # User data script
         user_data = ec2.UserData.for_linux()
         user_data.add_commands(
             "#!/bin/bash",
-            "yum update -y",
-            "yum install -y aws-cfn-bootstrap awscli python3 python3-pip",
-            "pip3 install streamlit",
-            "echo 'alias python=python3' >> /etc/profile.d/python3.sh",
-            "source /etc/profile.d/python3.sh",
-            "# Signal the status from cfn-init",
-            "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource MonolitikEC2Instance --region ${AWS::Region}"
+            "yum install -y python3-pip",
+            "pip3 freeze > requirements.txt",
+            "pip3 install -r requirements.txt",
+            "su ec2-user",
+            "pip3 install streamlit==1.36.0 --ignore-installed"
         )
 
         ec2_instance = ec2.Instance(
@@ -81,16 +76,7 @@ class MonolitikStack(cdk.Stack):
             machine_image=ec2.MachineImage.latest_amazon_linux2023(),
             role=role,
             user_data=user_data,
-        )
-
-        # Add CreationPolicy to wait for cfn-signal
-        timeout_string = Duration.minutes(2).to_string()
-        cfn_instance = ec2_instance.node.default_child
-        cfn_instance.cfn_options.creation_policy = CfnCreationPolicy(
-            resource_signal=CfnResourceSignal(
-                count=1,
-                timeout=timeout_string
-            )
+            user_data_causes_replacement=True,
         )
 
 app = cdk.App()

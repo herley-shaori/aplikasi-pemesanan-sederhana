@@ -21,7 +21,7 @@ def handler(event, context):
         try:
             codecommit.put_file(
                 repositoryName=repo_name,
-                branchName='main',
+                branchName='master',
                 fileContent=file_content,
                 filePath=file_path,
                 commitMessage=f'Update {file_path} from S3'

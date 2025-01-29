@@ -1,1 +1,0 @@
-aws s3 cp streamlit_app/code.zip s3://codecommitsource-herley/codecommit/

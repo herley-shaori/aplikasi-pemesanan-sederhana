@@ -5,7 +5,7 @@ def create_codecommit_repo(scope, id):
         repository_name="simple-ordering-app",
         description="CodeCommit repository created with CDK.",
         code=codecommit.Code.from_directory(
-            "../1_monolitik/streamlit_app",
+            "streamlit_app",
             branch="master",
         ),
     )
